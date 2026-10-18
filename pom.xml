@@ -55,6 +55,10 @@
             <id>papermc-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
+        <repository>
+            <id>extendedclip</id>
+            <url>https://repo.extendedclip.com/releases/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -62,6 +66,13 @@
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
             <version>1.21.11-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- provided: PlaceholderAPI is a soft dependency and must not be shaded into the jar -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.12.3</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
