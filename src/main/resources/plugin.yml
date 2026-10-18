@@ -4,3 +4,20 @@ version: '${version}'
 main: org.chiterok.claudeLang.ClaudeLang
 api-version: '1.21.11'
 load: POSTWORLD
+softdepend: [PlaceholderAPI]
+
+commands:
+  claudelang:
+    description: Manage ClaudeLang languages
+    usage: "/<command> <reload|set>"
+
+permissions:
+  claudelang.reload:
+    description: Reload the config and all language files
+    default: op
+  claudelang.set:
+    description: Set your own language override
+    default: true
+  claudelang.set.others:
+    description: Set the language override of other players
+    default: op

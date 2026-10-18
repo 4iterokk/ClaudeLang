@@ -22,20 +22,31 @@ Guidance for working on the **ClaudeLang** plugin: a Paper plugin (API 1.21.11) 
 
 ```
 src/main/java/org/chiterok/claudeLang/
-  ClaudeLang.java            # JavaPlugin entry point (onEnable/onDisable)
-  utils/ColorUtil.java       # Single entry point: String -> Kyori Component
+  ClaudeLang.java            # JavaPlugin entry point: wires lang manager and commands
+  utils/
+    ColorUtil.java           # Single entry point: String -> Kyori Component
+    PlaceholderApiHook.java  # Reflective, optional PlaceholderAPI bridge (package-private)
+  lang/
+    LangManager.java         # Lookup by key, fallback chain, reload, per-player overrides
+    LangLoader.java          # Reads <code>.yml index + text/<section>.yml into a LangPack
+    LangInstaller.java       # Copies bundled lang files to the data folder (never overwrites)
+    LangPack.java            # Immutable flattened strings of one language
+    PlayerLangStore.java     # players.yml: /claudelang set overrides
   command/
-    CommandRegistry.java     # Command registration (stub)
-    SubCommand.java          # Sub-command contract (stub)
-    commands/Reload.java     # /claudelang reload (stub)
-    commands/Set.java        # /claudelang set <lang> (stub)
+    CommandRegistry.java     # /claudelang dispatcher + tab completion
+    SubCommand.java          # Sub-command contract
+    commands/Reload.java     # /claudelang reload
+    commands/Set.java        # /claudelang set <lang|reset> [player]
 src/main/resources/
-  plugin.yml
+  plugin.yml                 # command, permissions, softdepend PlaceholderAPI
   config.yml                 # depend-game-lang, default-lang
   lang/
     en/en.yml                # Language index (maps sections to files)
-    en/text/tab.yml          # Actual strings for the "tab" section
-    ru/ru.yml                # Russian index (currently empty)
+    en/text/tab.yml          # Strings for the "tab" section
+    en/text/messages.yml     # Command/feedback messages
+    ru/ru.yml                # Russian index
+    ru/text/tab.yml
+    ru/text/messages.yml
 ```
 
 When you add a language or a feature, keep this structure. Don't invent a new layout.
@@ -175,24 +186,26 @@ Rules:
 - Root command: `/claudelang` (plan), with sub-commands implementing `SubCommand`.
 - Planned sub-commands:
     - `reload`: reload `config.yml` and all lang files, without a server restart
-    - `set <lang>`: set a player's language override (if `depend-game-lang` is false, or as an override)
+    - `set <lang|reset> [player]`: set a player's language override (if `depend-game-lang` is false, or as an override); `reset` removes it; targeting another player needs `claudelang.set.others`
 - Every command must have a permission node: `claudelang.<subcommand>`. Declare them in `plugin.yml`.
 - Tab-complete language codes from the loaded language folders.
 
 ## 10. Current state and known gaps
 
-Be honest about these. Do not assume they work:
+Implemented: `ColorUtil` pipeline (placeholders, MiniMessage, optional PlaceholderAPI), the `lang` package (loader, fallback chain, warn-once, reload, per-player overrides), `/claudelang reload` and `/claudelang set`, permissions in `plugin.yml`, `en` and `ru` files, `onEnable` wiring, and `maven-compiler-plugin` pinned with `<release>21</release>`.
 
-1. **`ColorUtil.colorize(String, Map, Player)` returns `null`.** The method converts the text into `converted` and then returns `null` without rendering it. Fix this first: apply placeholders, convert with `MINI.deserialize`, and resolve PlaceholderAPI if present.
-2. **`applyPlaceholders` is defined but never called.** Wire it into the colorize pipeline.
-3. **`toMiniMessage` is applied to placeholder values inside `applyPlaceholders`**, but the value is converted again later if it contains `<`. Check for double conversion. Plain user input containing `<` may be interpreted as a tag. Escape user-provided values with `MiniMessage#escapeTags` before converting, or convert only once.
-4. **The PlaceholderAPI section is an empty comment block.** Implement it per section 6.2.
-5. **Language loader does not exist yet.** The index/`text/` structure in section 4 is the target design; implement it in a `lang` package (for example `org.chiterok.claudeLang.lang.LangManager`).
-6. **`lang/ru/ru.yml` is empty.** Add the index and `text/` files when Russian is ready.
-7. **Command classes are empty stubs** (`CommandRegistry`, `SubCommand`, `Reload`, `Set`).
-8. **`en.yml` index points at `tab.yml`, but `text/tab.yml` uses `tab:` as its root key.** Keep this structure consistent: the index section name must match the root key in its file.
-9. **`ClaudeLang.onEnable` is empty.** Wire the lang manager, config, and commands here.
-10. **IDE JDK is 26, pom targets 21.** Build against 21 to match the target server runtime.
+Design notes worth knowing:
+
+- Placeholder values are passed through `MiniMessage#escapeTags` and then converted once, so a value can carry `&` / `&#RRGGBB` codes but can never inject MiniMessage tags (click/hover). Write tags in the lang text, not in values.
+- Bundled language files are copied to `plugins/ClaudeLang/lang/` only when missing. Existing files are never overwritten, so keys added in a later plugin version do not reach files a server owner already has. Those keys fall back along the chain in 4.5.
+- Overrides from `/claudelang set` live in `players.yml` in the data folder and apply even when `depend-game-lang` is true.
+- `en` is the only language code known to Java (the last step of the fallback chain in 4.5). Everything else comes from the client locale or `default-lang`.
+
+Open gaps:
+
+1. No feature renders strings yet. `tab.*` keys exist, but there is no tab-list, scoreboard, or chat code using `LangManager#get`.
+2. There are no automated tests (loader, fallback chain, `ColorUtil` escaping).
+3. The IDE project is set to JDK 26. Maven builds with `--release 21`; keep the IDE language level compatible.
 
 ## 11. Working rules for Claude
 

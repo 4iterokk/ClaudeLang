@@ -47,8 +47,10 @@ public final class ColorUtil {
      */
     public static Component colorize(String text, Map<String, String> placeholders, @Nullable Player viewer) {
         if (text == null || text.isEmpty()) return Component.empty();
-        String converted = toMiniMessage(text);
-        return null;
+        // Order matters: legacy -> MiniMessage first, so values substituted afterwards are converted exactly once.
+        String converted = applyPlaceholders(toMiniMessage(text), placeholders);
+        converted = applyPlaceholderApi(converted, viewer);
+        return MINI.deserialize(converted);
     }
 
     public static List<Component> colorize(List<String> lines) {
@@ -96,12 +98,18 @@ public final class ColorUtil {
         return PlainTextComponentSerializer.plainText().serialize(component);
     }
 
-    private static String applyPlaceholders(String text, Map<String, String> placeholders) {
+    /**
+     * Replaces {@code {name}} placeholders in text that is already MiniMessage-converted. Values keep legacy/hex
+     * codes working, but their literal {@code <tags>} are escaped first so a value can never inject MiniMessage
+     * (click/hover events, for example). Unknown placeholders stay visible on purpose.
+     */
+    private static String applyPlaceholders(String text, @Nullable Map<String, String> placeholders) {
+        if (placeholders == null || placeholders.isEmpty()) return text;
         Matcher matcher = PLACEHOLDER.matcher(text);
         StringBuilder out = new StringBuilder();
         while (matcher.find()) {
             String value = placeholders.get(matcher.group(1));
-            String replacement = value == null ? matcher.group() : toMiniMessage(value);
+            String replacement = value == null ? matcher.group() : toMiniMessage(MINI.escapeTags(value));
             matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(out);
@@ -112,6 +120,11 @@ public final class ColorUtil {
      * Resolves PlaceholderAPI placeholders in already MiniMessage-converted text. The resolved text may carry legacy
      * or hex codes, so it is converted again; text without any change is returned untouched.
      */
+    private static String applyPlaceholderApi(String text, @Nullable Player viewer) {
+        if (viewer == null || text.indexOf('%') < 0) return text;
+        String resolved = PlaceholderApiHook.resolve(viewer, text);
+        return resolved.equals(text) ? text : toMiniMessage(resolved);
+    }
 
     /** Converts legacy and {@code &#RRGGBB} syntax into MiniMessage tags. */
     private static String toMiniMessage(String text) {

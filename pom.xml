@@ -24,8 +24,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <!-- release (not source/target) pins the API to Java 21 even when the IDE/JDK is newer -->
+                    <release>${java.version}</release>
                 </configuration>
             </plugin>
             <plugin>
