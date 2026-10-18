@@ -1,0 +1,13 @@
+messages:
+  usage: "&7Usage: &f/claudelang <{subcommands}>"
+  no_permission: "&cYou don't have permission to do that."
+  unknown_subcommand: "&cUnknown sub-command: &f{input}"
+  reloaded: "&aReloaded &f{count} &alanguage(s)."
+  set_usage: "&7Usage: &f/claudelang set <lang|reset> [player]"
+  set_unknown_lang: "&cUnknown language: &f{lang}&c. Available: &f{available}"
+  set_done: "&aYour language is now &f{lang}&a."
+  set_done_other: "&aLanguage of &f{player} &ais now &f{lang}&a."
+  set_reset: "&aYour language override was removed."
+  set_reset_other: "&aLanguage override of &f{player} &awas removed."
+  player_not_found: "&cPlayer not found: &f{player}"
+  console_needs_player: "&cThe console must name a player: &f/claudelang set <lang|reset> <player>"

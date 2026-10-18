@@ -1,0 +1,13 @@
+messages:
+  usage: "&7Использование: &f/claudelang <{subcommands}>"
+  no_permission: "&cУ вас нет прав для этого."
+  unknown_subcommand: "&cНеизвестная подкоманда: &f{input}"
+  reloaded: "&aПерезагружено языков: &f{count}&a."
+  set_usage: "&7Использование: &f/claudelang set <язык|reset> [игрок]"
+  set_unknown_lang: "&cНеизвестный язык: &f{lang}&c. Доступны: &f{available}"
+  set_done: "&aВаш язык теперь &f{lang}&a."
+  set_done_other: "&aЯзык игрока &f{player} &aтеперь &f{lang}&a."
+  set_reset: "&aВаш выбор языка сброшен."
+  set_reset_other: "&aВыбор языка игрока &f{player} &aсброшен."
+  player_not_found: "&cИгрок не найден: &f{player}"
+  console_needs_player: "&cКонсоль должна указать игрока: &f/claudelang set <язык|reset> <игрок>"
