@@ -1,0 +1,6 @@
+name: ClaudeLang
+version: '${version}'
+
+main: org.chiterok.claudeLang.ClaudeLang
+api-version: '1.21.11'
+load: POSTWORLD

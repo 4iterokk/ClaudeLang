@@ -1,0 +1,4 @@
+# If true, plugin will automatically set lang similar to clients lang.
+# If it doesn't exist, plugin will set lang from "default-lang"
+depend-game-lang: true
+default-lang: en
