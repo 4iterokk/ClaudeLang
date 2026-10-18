@@ -10,6 +10,9 @@ commands:
   claudelang:
     description: Manage ClaudeLang languages
     usage: "/<command> <reload|set>"
+    aliases:
+      - clang
+      - lang
 
 permissions:
   claudelang.reload:
