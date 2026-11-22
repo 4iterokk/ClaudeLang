@@ -1,16 +1,21 @@
 package org.chiterok.claudeLang;
 
+import net.kyori.adventure.translation.GlobalTranslator;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.chiterok.claudeLang.command.CommandRegistry;
 import org.chiterok.claudeLang.command.commands.Reload;
 import org.chiterok.claudeLang.command.commands.Set;
 import org.chiterok.claudeLang.hook.ClaudeLangExpansion;
+import org.chiterok.claudeLang.hook.packet.PacketTranslationHook;
+import org.chiterok.claudeLang.lang.ClaudeLangTranslator;
 import org.chiterok.claudeLang.lang.LangManager;
 
 public final class ClaudeLang extends JavaPlugin {
 
     private LangManager lang;
+    private ClaudeLangTranslator translator;
+    private PacketTranslationHook packetHook;
 
     @Override
     public void onEnable() {
@@ -32,11 +37,17 @@ public final class ClaudeLang extends JavaPlugin {
         command.setTabCompleter(registry);
 
         registerPlaceholderExpansion();
+
+        translator = new ClaudeLangTranslator(lang);
+        GlobalTranslator.translator().addSource(translator);
+        registerPacketTranslation();
     }
 
     @Override
     public void onDisable() {
-        // Nothing to release: overrides are saved when they change.
+        // Overrides are saved when they change; only the translation hooks need releasing.
+        if (translator != null) GlobalTranslator.translator().removeSource(translator);
+        if (packetHook != null) packetHook.unregister();
     }
 
     /** Entry point for other features: {@code getLang().get(viewer, "tab.online")}. */
@@ -53,5 +64,12 @@ public final class ClaudeLang extends JavaPlugin {
         if (!new ClaudeLangExpansion(this, lang).register()) {
             getLogger().warning("Could not register the PlaceholderAPI expansion 'claudelang'");
         }
+    }
+
+    /** Same guard as above: {@code hook.packet} classes are only loaded when PacketEvents is enabled. */
+    private void registerPacketTranslation() {
+        if (!getConfig().getBoolean("packet-translation", true)) return;
+        if (!getServer().getPluginManager().isPluginEnabled("packetevents")) return;
+        packetHook = PacketTranslationHook.register(lang);
     }
 }

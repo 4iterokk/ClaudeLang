@@ -59,6 +59,10 @@
             <id>extendedclip</id>
             <url>https://repo.extendedclip.com/releases/</url>
         </repository>
+        <repository>
+            <id>codemc-releases</id>
+            <url>https://repo.codemc.io/repository/maven-releases/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -74,6 +78,19 @@
             <artifactId>placeholderapi</artifactId>
             <version>2.12.3</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- provided: PacketEvents is a soft dependency; Adventure comes from Paper, so its copy is excluded -->
+        <dependency>
+            <groupId>com.github.retrooper</groupId>
+            <artifactId>packetevents-spigot</artifactId>
+            <version>2.14.0</version>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>net.kyori</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

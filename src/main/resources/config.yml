@@ -2,3 +2,8 @@
 # If it doesn't exist, plugin will set lang from "default-lang"
 depend-game-lang: true
 default-lang: en
+
+# Needs PacketEvents. Replaces {lang:<key>} in outgoing chat, titles, tab, scoreboard, boss bars,
+# inventory titles, items and entity names with the text in each viewer's language.
+# Applied on plugin start; restart the server after changing it.
+packet-translation: true

@@ -1,8 +1,11 @@
 package org.chiterok.claudeLang.utils;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -30,6 +33,7 @@ public final class ColorUtil {
     private static final Pattern AMP_HEX = Pattern.compile("&#([A-Fa-f0-9]{6})");
     private static final Pattern LEGACY = Pattern.compile("&([0-9a-fA-Fk-oK-OrR])");
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([A-Za-z0-9_.-]+)}");
+    private static final Pattern POSITIONAL = Pattern.compile("\\{(\\d{1,2})}");
 
     private ColorUtil() {}
 
@@ -51,6 +55,28 @@ public final class ColorUtil {
         String converted = applyPlaceholders(toMiniMessage(text), placeholders);
         converted = applyPlaceholderApi(converted, viewer);
         return MINI.deserialize(converted);
+    }
+
+    /**
+     * Colorizes {@code text} and fills the positional placeholders {@code {0}}, {@code {1}}, ... with ready
+     * components (the arguments of a translatable component). Indexes without an argument stay visible.
+     */
+    public static Component colorize(String text, List<? extends ComponentLike> args) {
+        if (text == null || text.isEmpty()) return Component.empty();
+        String converted = toMiniMessage(text);
+        if (args.isEmpty()) return MINI.deserialize(converted);
+
+        TagResolver.Builder resolvers = TagResolver.builder();
+        for (int i = 0; i < args.size(); i++) resolvers.resolver(Placeholder.component("arg_" + i, args.get(i)));
+        Matcher matcher = POSITIONAL.matcher(converted);
+        StringBuilder out = new StringBuilder();
+        while (matcher.find()) {
+            int index = Integer.parseInt(matcher.group(1));
+            String replacement = index < args.size() ? "<arg_" + index + ">" : matcher.group();
+            matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(out);
+        return MINI.deserialize(out.toString(), resolvers.build());
     }
 
     public static List<Component> colorize(List<String> lines) {
