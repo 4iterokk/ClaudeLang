@@ -10,6 +10,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -75,8 +76,21 @@ public final class LangManager {
      * @param viewer the player who will see the text, or {@code null} for console/global text (uses default-lang)
      */
     public String get(@Nullable Player viewer, String key) {
+        return lookup(chain(viewer), key);
+    }
+
+    /**
+     * Same as {@link #get(Player, String)} when only a locale is known (Adventure's {@code GlobalTranslator}).
+     * {@code /claudelang set} overrides cannot apply here, because no player is known.
+     */
+    public String get(Locale locale, String key) {
+        Snapshot current = snapshot;
+        String language = current.dependGameLang() ? ColorUtil.key(locale.getLanguage()) : "";
+        return lookup(chain(language.isEmpty() ? null : language, current), key);
+    }
+
+    private String lookup(List<LangPack> chain, String key) {
         String normalized = ColorUtil.key(key);
-        List<LangPack> chain = chain(viewer);
         for (LangPack pack : chain) {
             String value = pack.string(normalized);
             if (value != null) return value;
@@ -128,8 +142,11 @@ public final class LangManager {
 
     private List<LangPack> chain(@Nullable Player viewer) {
         Snapshot current = snapshot;
+        return chain(preferredLanguage(viewer, current), current);
+    }
+
+    private List<LangPack> chain(@Nullable String preferred, Snapshot current) {
         Set<String> codes = new LinkedHashSet<>();
-        String preferred = preferredLanguage(viewer, current);
         if (preferred != null) codes.add(preferred);
         codes.add(current.defaultLang());
         codes.add(FALLBACK_LANG);

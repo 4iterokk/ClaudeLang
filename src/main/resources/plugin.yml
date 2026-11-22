@@ -4,7 +4,7 @@ version: '${version}'
 main: org.chiterok.claudeLang.ClaudeLang
 api-version: '1.21.11'
 load: POSTWORLD
-softdepend: [PlaceholderAPI]
+softdepend: [PlaceholderAPI, packetevents]
 
 commands:
   claudelang:

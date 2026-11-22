@@ -13,7 +13,7 @@ Guidance for working on the **ClaudeLang** plugin: a Paper plugin (API 1.21.11) 
 
 - Java 21 (`pom.xml`, `java.version`). The IDE project is set to JDK 26; keep code compatible with Java 21.
 - Maven, `mvn clean package`. The output is shaded (`maven-shade-plugin`).
-- Dependencies (both `provided`, so neither is shaded): `io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT` and `me.clip:placeholderapi:2.12.3` (repository `extendedclip`, `https://repo.extendedclip.com/releases/`).
+- Dependencies (all `provided`, so none is shaded): `io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT`, `me.clip:placeholderapi:2.12.3` (repository `extendedclip`, `https://repo.extendedclip.com/releases/`) and `com.github.retrooper:packetevents-spigot:2.14.0` (repository `codemc-releases`, Adventure excluded).
 - `src/main/resources` is Maven-filtered. Any `${...}` in resource files is replaced at build time. Do not put literal `${` in YAML lang files. Escape it or avoid it.
 - `plugin.yml`: `main: org.chiterok.claudeLang.ClaudeLang`, `api-version: '1.21.11'`, `load: POSTWORLD`.
 - Base package: `org.chiterok.claudeLang`.
@@ -28,7 +28,9 @@ src/main/java/org/chiterok/claudeLang/
     PlaceholderApiHook.java  # Reflective, optional PlaceholderAPI bridge (package-private)
   hook/
     ClaudeLangExpansion.java # %claudelang_<key>% expansion; the only class that references me.clip.*
+    packet/                  # Optional PacketEvents layer for {lang:<key>} markers (section 6b)
   lang/
+    ClaudeLangTranslator.java # GlobalTranslator source for Component.translatable("claudelang.<key>")
     LangManager.java         # Lookup by key, fallback chain, reload, per-player overrides
     LangLoader.java          # Reads <code>.yml index + text/<section>.yml into a LangPack
     LangInstaller.java       # Copies bundled lang files to the data folder (never overwrites)
@@ -167,6 +169,23 @@ Other plugins (TAB, scoreboard, chat, menus) can show ClaudeLang text without an
 - The expansion is registered in `ClaudeLang#onEnable` only when PlaceholderAPI is enabled, after `LangManager` is ready. Nothing outside the `hook` package may reference `me.clip.*`.
 - Nothing is cached, so `/claudelang reload` takes effect immediately without re-registering.
 
+## 6b. Translatable components and packet markers
+
+Two more ways to show ClaudeLang text, both per viewer:
+
+- **Translatable components (no dependency).** `lang/ClaudeLangTranslator.java` is a `GlobalTranslator` source.
+  `Component.translatable("claudelang.<key>", args...)` is rendered by Paper in the client's locale wherever Paper
+  translates server-side (chat, titles, action bar, boss bar, tab). Only keys with the `claudelang.` prefix are handled,
+  so vanilla keys are never taken over. Arguments fill `{0}`, `{1}`, ... (`ColorUtil.colorize(String, List)`).
+  Only a locale is passed in, so `/claudelang set` overrides and PlaceholderAPI do **not** apply here.
+- **Packet markers (optional, PacketEvents).** `hook/packet/` rewrites `{lang:<key>}` in outgoing packets: system chat,
+  titles, action bar, tab header/footer, boss bar, scoreboard objective, team prefix/suffix/name, inventory titles,
+  item names/lore, entity custom names and text displays. Overrides apply. Toggle: `packet-translation` in `config.yml`.
+  - It runs on netty threads: no PlaceholderAPI, no Bukkit world access, and an unchanged packet is never re-encoded.
+  - Items are not translated for creative players (the client would send the translated item back and make it permanent).
+  - The marker must sit inside one text node (one style), as it does in normal config text.
+  - Only `hook/packet` may reference `com.github.retrooper.*`. It is loaded only when PacketEvents is enabled.
+
 ## 7. Rendering API (`ColorUtil`)
 
 `ColorUtil` is the only place that converts strings to Components. Do not call MiniMessage or `LegacyComponentSerializer` directly in feature code.
@@ -206,7 +225,7 @@ Rules:
 
 ## 10. Current state and known gaps
 
-Implemented: `ColorUtil` pipeline (placeholders, MiniMessage, optional PlaceholderAPI), the `lang` package (loader, fallback chain, warn-once, reload, per-player overrides), `/claudelang reload` and `/claudelang set`, permissions in `plugin.yml`, `en` and `ru` files, `onEnable` wiring, `maven-compiler-plugin` pinned with `<release>21</release>`, and the PlaceholderAPI expansion `%claudelang_<key>%` (section 6a; PlaceholderAPI 2.12.3, `provided`). `tab.header` and `tab.footer` exist in `en` and `ru` as example keys for it.
+Implemented: `ColorUtil` pipeline (placeholders, MiniMessage, optional PlaceholderAPI), the `lang` package (loader, fallback chain, warn-once, reload, per-player overrides), `/claudelang reload` and `/claudelang set`, permissions in `plugin.yml`, `en` and `ru` files, `onEnable` wiring, `maven-compiler-plugin` pinned with `<release>21</release>`, and the PlaceholderAPI expansion `%claudelang_<key>%` (section 6a; PlaceholderAPI 2.12.3, `provided`). `tab.header` and `tab.footer` exist in `en` and `ru` as example keys for it. Also implemented: translatable components (`claudelang.<key>`) and the optional PacketEvents marker layer `{lang:<key>}` (section 6b).
 
 Design notes worth knowing:
 
@@ -242,6 +261,6 @@ Open gaps:
 | Add a language | New folder `lang/<code>/` with index and `text/` |
 | Change default language | `config.yml` → `default-lang` |
 | Render text | `ColorUtil.colorize` / `colorizeItem` |
-| Show text from another plugin | `%claudelang_<key>%` (section 6a) |
+| Show text from another plugin | `%claudelang_<key>%` (section 6a), or `{lang:<key>}` with PacketEvents (section 6b) |
 | Add a command | `command/commands/` + implement `SubCommand` + register in `CommandRegistry` + `plugin.yml` |
 | Build | `mvn clean package` → shaded jar in `target/` |
